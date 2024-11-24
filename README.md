@@ -49,7 +49,15 @@ The idea behind Lang-Chat was to create a personalized assistant that could help
 
    You can obtain a free API key from [https://groq.com/](https://groq.com/).
 
-### The following steps are optional if you wish to scrape the documentation and issues again, otherwise the vector databases are provided
+##### The following steps are optional if you wish to scrape the documentation and issues again, otherwise the vector databases can be fetched from the [HuggingFace Space](https://huggingface.co/spaces/Tanmay09516/langchat/tree/main) with the following command:
+
+0.  **Fetch data from HuggingFace**:
+
+```bash
+wget https://huggingface.co/spaces/Tanmay09516/langchat/resolve/main/vector_stores.zip
+
+unzip vector_stores.zip
+```
 
 1. **Prepare the Data**
 

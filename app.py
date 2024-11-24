@@ -5,7 +5,7 @@ from embeddings import init_embeddings
 from vectorstore import load_all_vector_stores
 from retriever import create_combined_retriever
 from chain import init_conversational_chain
-from langchain_groq import ChatGroq  # Custom LLM class
+from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 import os
 import sys
