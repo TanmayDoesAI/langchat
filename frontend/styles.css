@@ -1,0 +1,125 @@
+/* styles.css */
+
+/* General Styles */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Chat Window */
+#chat-window {
+    height: 70vh;
+    overflow-y: auto;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+#chat-body {
+    padding: 15px;
+}
+
+.message {
+    margin-bottom: 15px;
+    display: flex;
+}
+
+.message.user .message-content {
+    margin-left: auto;
+    background-color: #0d6efd;
+    color: white;
+    border-radius: 15px 15px 0 15px;
+}
+
+.message.assistant .message-content {
+    margin-right: auto;
+    background-color: #e9ecef;
+    color: black;
+    border-radius: 15px 15px 15px 0;
+}
+
+.message-content {
+    padding: 10px 15px;
+    max-width: 70%;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.message .timestamp {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+#send-button {
+    width: 100px;
+}
+
+/* Source Documents */
+#source-documents {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.source-item {
+    cursor: pointer;
+}
+
+.source-item:hover {
+    background-color: #f1f1f1;
+}
+
+/* Modal */
+.modal-body {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.message-content pre {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+.message-content code {
+    background-color: #f1f1f1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+/* Headings */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+/* Lists */
+.message-content ul,
+.message-content ol {
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+/* Blockquote */
+.message-content blockquote {
+    border-left: 4px solid #ccc;
+    padding-left: 10px;
+    color: #666;
+    margin-left: 0;
+}
+
+/* Links */
+.message-content a {
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.message-content a:hover {
+    text-decoration: underline;
+}
