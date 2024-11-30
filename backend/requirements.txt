@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+qdrant-client
+langchain
+langchain_community
+langchain_groq
+pydantic
+fastapi
+einops
+sentence-transformers
