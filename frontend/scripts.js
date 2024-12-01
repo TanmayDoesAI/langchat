@@ -39,16 +39,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         chatBody.scrollTop = chatBody.scrollHeight;
     }
+
     function linkify(text) {
         const urlRegex = /https?:\/\/[^\s"']+/g;
         return text.replace(urlRegex, (url) => {
             return `<a href="${url}" target="_blank">${url}</a>`;
         });
     }
+
+    // Function to parse sources from the sources string
+    function parseSources(sourcesString) {
+        const sources = [];
+        const lines = sourcesString.split('\n');
+        let currentSource = null;
+
+        lines.forEach(line => {
+            if (line.startsWith('- **Source:**')) {
+                // If we have a currentSource, push it
+                if (currentSource) {
+                    sources.push(currentSource);
+                }
+                const sourceUrlMatch = line.match(/- \*\*Source:\*\* (.*)/);
+                if (sourceUrlMatch) {
+                    const sourceUrl = sourceUrlMatch[1].trim();
+                    currentSource = { source: sourceUrl, text: '' };
+                }
+            } else if (line.startsWith('  **Text:**')) {
+                const textMatch = line.match(/  \*\*Text:\*\* (.*)/);
+                if (textMatch && currentSource) {
+                    currentSource.text = textMatch[1].trim();
+                }
+            } else if (currentSource && line.trim() !== '') {
+                currentSource.text += '\n' + line.trim();
+            }
+        });
+        // Add the last source
+        if (currentSource) {
+            sources.push(currentSource);
+        }
+        return sources;
+    }
+
     // Function to handle sending message
     function sendMessage() {
         const message = queryInput.value.trim();
         if (message === '') return;
+
+        console.log('User Message:', message); // Log user's input
 
         // Append user message
         appendMessage('user', message);
@@ -58,24 +95,119 @@ document.addEventListener('DOMContentLoaded', () => {
         queryInput.disabled = true;
         sendButton.disabled = true;
 
+        // Initialize conversation history if not present
+        if (!window.conversationHistory) {
+            window.conversationHistory = [];
+        }
+
+        // Add the user's message to the conversation history
+        window.conversationHistory.push([message, null]);
+        console.log('Conversation History:', window.conversationHistory); // Log conversation history
+
+        // Prepare data for POST request
+        const data = {
+            data: [
+                message,
+                window.conversationHistory,
+                "# Hello!"
+            ]
+        };
+
+        console.log('Data to be sent:', data); // Log the data being sent to the API
+
         // Send POST request to API
-        fetch('http://127.0.0.1:8000/api/chat', { // Replace with your backend URL
+        fetch('https://tanmay09516-langchat-backend.hf.space/gradio_api/call/respond', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ question: message })
+            body: JSON.stringify(data)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.detail) {
-                appendMessage('assistant', `Error: ${data.detail}`);
-            } else {
-                const answer = data.answer;
-                appendMessage('assistant', answer);
+        .then(response => {
+            console.log('POST Response:', response); // Log the raw response
+            return response.json();
+        })
+        .then(postResponse => {
+            console.log('Parsed POST Response:', postResponse); // Log the parsed response
 
-                // Display source documents
-                const sources = data.sources;
+            // Extract the event ID from the response
+            const eventId = postResponse['event_id'];
+            if (!eventId) {
+                console.error('Event ID not found in response:', postResponse); // Log the error and response
+                throw new Error('Event ID not found in response');
+            }
+
+            console.log('Event ID:', eventId); // Log the Event ID
+
+            // Now make a GET request to get the assistant's response
+            return fetch('https://tanmay09516-langchat-backend.hf.space/gradio_api/call/respond/' + eventId);
+        })
+        .then(response => {
+            return response.text(); // Get the response as text
+        })
+        .then(getResponse => {
+            console.log('Parsed GET Response:', getResponse); // Log the parsed GET response
+
+            // Parse the SSE-formatted response
+            const events = getResponse.split('\n\n');
+            let assistantReply = null;
+            let sources = [];
+
+            events.forEach(event => {
+                const lines = event.split('\n');
+                let eventName = '';
+                let data = '';
+
+                lines.forEach(line => {
+                    if (line.startsWith('event: ')) {
+                        eventName = line.slice('event: '.length);
+                    } else if (line.startsWith('data: ')) {
+                        data += line.slice('data: '.length);
+                    }
+                });
+
+                if (eventName === 'complete') {
+                    console.log('Data from complete event:', data);
+                    try {
+                        const parsedData = JSON.parse(data);
+                        console.log('Parsed data:', parsedData);
+
+                        // Extract assistant's reply from the parsed data
+                        const conversationHistory = parsedData[0];
+                        const lastTurn = conversationHistory[conversationHistory.length - 1];
+                        assistantReply = lastTurn[1]; // Assistant's message
+
+                        console.log('Assistant Response:', assistantReply);
+
+                        // Extract sources from parsedData[2] if it exists
+                        const sourcesString = parsedData[2];
+                        console.log('Sources String:', sourcesString);
+
+                        if (sourcesString) {
+                            // Parse sourcesString to extract sources
+                            sources = parseSources(sourcesString);
+                            console.log('Extracted Sources:', sources);
+                        } else {
+                            console.log('No sources found.');
+                        }
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                }
+            });
+
+            if (assistantReply === null) {
+                throw new Error('Assistant response not found in the GET response.');
+            }
+
+            // Append assistant's message
+            appendMessage('assistant', assistantReply);
+
+            // Add the assistant's response to the conversation history
+            window.conversationHistory.push([null, assistantReply]);
+
+            // Display the sources if any
+            if (sources.length > 0) {
                 displaySources(sources);
             }
         })
@@ -91,20 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // // Function to display source documents
-    // function displaySources(sources) {
-    //     sourceDocuments.innerHTML = ''; // Clear previous sources
-    //     sources.forEach((doc, index) => {
-    //         const listItem = document.createElement('li');
-    //         listItem.classList.add('list-group-item', 'source-item');
-    //         listItem.innerHTML = `<strong>Source ${index + 1}:</strong> ${doc.source}`;
-    //         listItem.addEventListener('click', () => {
-    //             modalBody.textContent = `Source: ${doc.source}\n\n${doc.text}`;
-    //             docModal.show();
-    //         });
-    //         sourceDocuments.appendChild(listItem);
-    //     });
-    // }
     function displaySources(sources) {
         sourceDocuments.innerHTML = ''; // Clear previous sources
         sources.forEach((doc, index) => {
@@ -117,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const linkedDocSource = linkify(doc.source);
                 const linkedDocText = linkify(doc.text);
                 // Set modal content
-                const modalBody = document.getElementById('modal-body');
                 modalBody.innerHTML = `
                     <p><strong>Source:</strong> ${linkedDocSource}</p>
                     <p><strong>Text:</strong> ${linkedDocText}</p>
@@ -128,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sourceDocuments.appendChild(listItem);
         });
     }
+
     // Event listeners
     sendButton.addEventListener('click', sendMessage);
     queryInput.addEventListener('keypress', (e) => {
